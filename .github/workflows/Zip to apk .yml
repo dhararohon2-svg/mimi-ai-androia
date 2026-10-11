@@ -1,0 +1,38 @@
+name: Build APK from Catbox Zip
+
+on:
+  workflow_dispatch:
+    inputs:
+      zip_url:
+        description: 'Zip file download link'
+        required: true
+        default: 'https://files.catbox.moe/m0wm9l.zip'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Zip File
+      run: |
+        curl -L -o project.zip "${{ github.event.inputs.zip_url }}"
+        mkdir extracted_folder
+        unzip -q project.zip -d extracted_folder
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Grant execute permission and Build APK
+      run: |
+        cd extracted_folder/*
+        chmod +x gradlew
+        ./gradlew assembleDebug
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug-apk
+        path: extracted_folder/*/app/build/outputs/apk/debug/app-debug.apk
+        
