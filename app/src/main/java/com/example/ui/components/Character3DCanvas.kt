@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,7 +22,6 @@ import io.github.sceneview.math.Position
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.rememberEngine
-import io.github.sceneview.rememberModelInstance
 import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberNodes
 
@@ -47,13 +47,6 @@ fun Character3DCanvas(
         // former placeholder anime_mimi.glb; alternate tiny placeholders remain selectable.
         "models/${if (modelId.isBlank()) "anime_mimi" else modelId}.glb"
     }
-    val modelInstance = rememberModelInstance(modelLoader, modelPath)
-    val childNodes = rememberNodes {
-        if (modelInstance != null) {
-            add(ModelNode(modelInstance = modelInstance, scaleToUnits = 1.8f))
-        }
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -64,20 +57,38 @@ fun Character3DCanvas(
                 )
             )
     ) {
-        if (modelInstance != null) {
-            Scene(
-                modifier = Modifier.fillMaxSize(),
-                engine = engine,
-                modelLoader = modelLoader,
-                cameraNode = cameraNode,
-                childNodes = childNodes
-            )
-        } else {
-            Text(
-                text = "3D model could not be loaded",
-                color = Color(0xFFFFB4D2),
-                modifier = Modifier.align(Alignment.Center)
-            )
+        // key(modelPath): মডেল বদলালে নতুন করে লোড হবে এবং নোড লিস্টও নতুন হবে।
+        key(modelPath) {
+            // SceneView 2.2.1 এ rememberModelInstance নেই (ওটা 3.x এর API)।
+            // এখানে modelLoader.createModelInstance() দিয়ে সরাসরি লোড করা হয়।
+            val modelInstance = remember {
+                try {
+                    modelLoader.createModelInstance(modelPath)
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            val childNodes = rememberNodes {
+                if (modelInstance != null) {
+                    add(ModelNode(modelInstance = modelInstance, scaleToUnits = 1.8f))
+                }
+            }
+
+            if (modelInstance != null) {
+                Scene(
+                    modifier = Modifier.fillMaxSize(),
+                    engine = engine,
+                    modelLoader = modelLoader,
+                    cameraNode = cameraNode,
+                    childNodes = childNodes
+                )
+            } else {
+                Text(
+                    text = "3D model could not be loaded",
+                    color = Color(0xFFFFB4D2),
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
         }
 
         Text(

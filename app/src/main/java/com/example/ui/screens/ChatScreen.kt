@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.CommandRouter
 import com.example.core.MoodEngine
+import com.example.core.TtsManager
 import com.example.core.VoiceManager
 import com.example.data.AppDatabase
 import com.example.data.ChatMessageEntity
