@@ -1,0 +1,6 @@
+{
+  "name": "Mimi AI",
+  "description": "Mimi AI - 3D Voice Assistant, Phone Manager & Companion with smart voice control, mood engine, and system management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

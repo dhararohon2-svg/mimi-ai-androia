@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mimi AI</string>
+    <string name="accessibility_service_description">Mimi AI accessibility service helps automate phone actions, tap buttons, scroll, and manage device tasks hands-free.</string>
+    <string name="notification_listener_description">Allows Mimi AI to read aloud and announce notifications on voice command.</string>
+    <string name="wake_word_notification_title">Mimi AI Voice Service</string>
+    <string name="wake_word_notification_text">Active: Say \"Hey Mimi\" or \"হেই মিমি\"</string>
+    <string name="reminder_notification_channel">Reminders</string>
+    <string name="assistant_notification_channel">Mimi AI Service</string>
+</resources>
