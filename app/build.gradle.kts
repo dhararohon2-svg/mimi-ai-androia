@@ -35,6 +35,11 @@ android {
   }
 
   buildTypes {
+    debug {
+      // CI (GitHub Actions) এ debug বিল্ড সবসময় AGP-র নিজের ডিফল্ট "debug" signing config
+      // ব্যবহার করবে। এই key রানারে অটো তৈরি হয়, তাই debug.keystore কমিট করা লাগে না।
+      signingConfig = signingConfigs.getByName("debug")
+    }
     release {
       isCrunchPngs = false
       isMinifyEnabled = false
@@ -43,7 +48,6 @@ android {
       // AI Studio.
       signingConfig = signingConfigs.getByName("release")
     }
-    // Debug builds use Android Gradle Plugin's default debug signing configuration.
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
