@@ -32,13 +32,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.CharacterController
 import io.github.sceneview.Scene
+import io.github.sceneview.loaders.ModelLoader
 import io.github.sceneview.math.Position
+import io.github.sceneview.model.ModelInstance
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.node.Node
 import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.rememberEngine
-import io.github.sceneview.rememberModelInstance
 import io.github.sceneview.rememberModelLoader
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -269,4 +271,38 @@ private fun applyBasicIdle(
         baseRotation.z + pose.hipsRoll + pose.headRoll * 0.4f
     )
     node.scale = Position(baseScale.x * breath, baseScale.y * breath, baseScale.z * breath)
+}
+
+/**
+ * SceneView 2.2.1 does not provide a rememberModelInstance Compose helper.
+ * Load through its ModelLoader API and expose the result as Compose state.
+ * The owning rememberModelLoader manages the loaded model's lifetime.
+ */
+@Composable
+private fun rememberModelInstance(
+    modelLoader: ModelLoader,
+    modelPath: String
+): ModelInstance? {
+    var instance by remember(modelLoader, modelPath) {
+        mutableStateOf<ModelInstance?>(null)
+    }
+
+    LaunchedEffect(modelLoader, modelPath) {
+        try {
+            instance = modelLoader.loadModelInstance(
+                fileLocation = modelPath
+            )
+
+            if (instance == null) {
+                Log.e(TAG, "Model loader returned null: $modelPath")
+            }
+        } catch (e: CancellationException) {
+            // Preserve structured cancellation when the model changes or the screen closes.
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load model: $modelPath", e)
+        }
+    }
+
+    return instance
 }
