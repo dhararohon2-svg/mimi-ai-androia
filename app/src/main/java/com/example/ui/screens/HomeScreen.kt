@@ -405,25 +405,15 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Language Switch Chip
+                // Language is inferred automatically; this chip is informational, not a selector.
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .background(DarkCard)
                         .border(1.dp, DarkBorder, RoundedCornerShape(20.dp))
-                        .clickable {
-                            val newLang = if (prefs.voiceLanguage.startsWith("bn")) "en-US" else "bn-BD"
-                            prefs.voiceLanguage = newLang
-                            ttsManager.setupVoiceAndLanguage()
-                        }
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
-                    Text(
-                        text = if (prefs.voiceLanguage.startsWith("bn")) "🇧🇩 বাংলা" else "🇺🇸 English",
-                        color = TextPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text("🌐 Auto language", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 // Central Large Mic Button with Pulse Ring

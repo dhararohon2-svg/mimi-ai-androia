@@ -12,7 +12,8 @@ data class CommandResult(
     val replyText: String,
     val emotion: String,
     val actionType: String,
-    val success: Boolean
+    val success: Boolean,
+    val speechLanguage: String? = null
 )
 
 class CommandRouter(
@@ -46,6 +47,7 @@ class CommandRouter(
             executeAction(offlineAction, clean, isOffline = true)
         } else {
             // 2. Query Gemini AI with context
+            moodEngine.setMood("thinking")
             onProgress?.invoke("Thinking with AI...")
             val recentTurns = database.chatMessageDao().getRecentMessages(6).reversed().map {
                 Pair(it.sender, it.message)
@@ -72,14 +74,16 @@ class CommandRouter(
                     replyText = aiResponse.reply,
                     emotion = aiResponse.emotion,
                     actionType = executedType,
-                    success = allSuccess
+                    success = allSuccess,
+                    speechLanguage = aiResponse.speechLocale
                 )
             } else {
                 CommandResult(
                     replyText = aiResponse.reply,
                     emotion = aiResponse.emotion,
                     actionType = "chat",
-                    success = true
+                    success = true,
+                    speechLanguage = aiResponse.speechLocale
                 )
             }
         }
@@ -111,7 +115,11 @@ class CommandRouter(
 
         // 6. Speak aloud through TTS
         withContext(Dispatchers.Main) {
-            ttsManager.speak(result.replyText)
+            ttsManager.speak(
+                result.replyText,
+                languageTag = result.speechLanguage,
+                emotion = result.emotion
+            )
         }
 
         return@withContext result

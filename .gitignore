@@ -16,3 +16,11 @@
 local.properties
 .env
 debug.keystore
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.p8
+*.key
+key.properties

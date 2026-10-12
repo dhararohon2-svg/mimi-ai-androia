@@ -2,7 +2,6 @@ package com.example.core
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -19,6 +18,7 @@ data class MimiAction(
 data class GeminiMimiResponse(
     val reply: String,
     val emotion: String = "neutral",
+    val speechLocale: String? = null,
     val actions: List<MimiAction> = emptyList()
 )
 
@@ -57,8 +57,12 @@ class GeminiClient(
             Your affection score towards the user: $affectionScore / 100.
             
             Personality Guidelines:
-            - Respond in the language the user speaks: if user speaks Bengali, answer in cute, natural Bengali. If English, answer in sweet, friendly English.
-            - Always be polite, affectionate, and helpful. Use cute speech quirks naturally.
+            - Automatically infer all language(s) in the latest user message; never require a manual language choice. The user may code-switch in one sentence (for example, Bangla + English or Hindi + English), use transliteration, or change languages between turns.
+            - Mirror the user's dominant language and natural code-switch pattern. Preserve familiar English technical terms when they are mixed into Bengali/Hindi; do not force-translate unless asked.
+            - Write for natural spoken conversation: use idiomatic phrasing, clear sentence breaks, and restrained punctuation. Avoid repetitive pet names, forced cuteness, stage directions, or robotic boilerplate.
+            - Set speechLocale to a valid BCP-47 tag for the dominant spoken language and regional variety of your reply (for example, Indian Bengali = bn-IN, Indian English = en-IN, Hindi = hi-IN). For transliteration, infer from words and context rather than script alone.
+            - Infer the user's apparent emotional tone cautiously from words and context; do not claim certainty about ambiguous mood. Choose the response emotion to suit the reply (for example, reassuring when the user sounds upset), without exaggeration.
+            - Be warm, polite, and helpful. The emotion field describes Mimi's delivery of this reply and must match its meaning.
             - If user gives a phone command (calling, texting, opening apps, battery, flashlight, alarm, wifi, volume, etc.), choose the appropriate action and reply warmly.
             - If it's a general question or casual chat, answer enthusiastically with actions: [].
             
@@ -95,6 +99,7 @@ class GeminiClient(
             Format:
             {
               "reply": "Your voice response to the user",
+              "speechLocale": "BCP-47 locale for the reply, such as bn-IN or en-IN",
               "emotion": "happy|sad|angry|shy|neutral",
               "actions": [
                 {
@@ -147,47 +152,9 @@ class GeminiClient(
                     )
                 }
 
-                val jsonRoot = JsonParser.parseString(bodyStr).asJsonObject
-                val candidates = jsonRoot.getAsJsonArray("candidates")
-                val firstCandidate = candidates?.get(0)?.asJsonObject
-                val content = firstCandidate?.getAsJsonObject("content")
-                val parts = content?.getAsJsonArray("parts")
-                val rawText = parts?.get(0)?.asJsonObject?.get("text")?.asString ?: "{}"
-
-                // Parse inner JSON from text
-                val parsed = JsonParser.parseString(rawText.trim()).asJsonObject
-                val replyText = parsed.get("reply")?.asString ?: "I'm here!"
-                val emotion = parsed.get("emotion")?.asString ?: "neutral"
-
-                val actionsList = mutableListOf<MimiAction>()
-                if (parsed.has("actions") && parsed.get("actions").isJsonArray) {
-                    val actionsArray = parsed.getAsJsonArray("actions")
-                    for (actElem in actionsArray) {
-                        if (actElem.isJsonObject) {
-                            val actObj = actElem.asJsonObject
-                            val type = actObj.get("type")?.asString ?: "none"
-                            val argsMap = mutableMapOf<String, Any>()
-                            if (actObj.has("args") && actObj.get("args").isJsonObject) {
-                                val aObj = actObj.getAsJsonObject("args")
-                                for (key in aObj.keySet()) {
-                                    val elem = aObj.get(key)
-                                    if (elem.isJsonPrimitive) {
-                                        val prim = elem.asJsonPrimitive
-                                        if (prim.isBoolean) argsMap[key] = prim.asBoolean
-                                        else if (prim.isNumber) argsMap[key] = prim.asNumber
-                                        else argsMap[key] = prim.asString
-                                    }
-                                }
-                            }
-                            actionsList.add(MimiAction(type, argsMap))
-                        }
-                    }
-                }
-
-                return@withContext GeminiMimiResponse(
-                    reply = replyText,
-                    emotion = emotion,
-                    actions = actionsList
+                return@withContext parseGeminiResponseBody(
+                    body = bodyStr,
+                    fallbackSpeechLocale = SpeechLanguage.inferTag(userPrompt) ?: "en-US"
                 )
             }
         } catch (e: Exception) {

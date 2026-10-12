@@ -53,7 +53,7 @@ class MoodEngine(private val prefs: Prefs) {
 
     fun setMood(mood: String) {
         val validMood = when (mood.lowercase()) {
-            "happy", "sad", "angry", "shy", "neutral" -> mood.lowercase()
+            "happy", "sad", "angry", "shy", "neutral", "thinking" -> mood.lowercase()
             else -> "neutral"
         }
         prefs.currentMood = validMood

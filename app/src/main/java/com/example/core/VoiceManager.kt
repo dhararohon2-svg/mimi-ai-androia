@@ -3,12 +3,14 @@ package com.example.core
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Build
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.Locale
 
 class VoiceManager(
     private val context: Context,
@@ -99,13 +101,15 @@ class VoiceManager(
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
 
-            val langPref = prefs.voiceLanguage
-            if (langPref.startsWith("bn")) {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "bn-BD")
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "bn-BD")
+            if (Build.VERSION.SDK_INT >= 34) {
+                // Ask supported recognition services to detect and switch languages in one utterance.
+                // No allowed-language list is sent, so mixed-language input is not app-whitelisted.
+                putExtra("android.speech.extra.ENABLE_LANGUAGE_DETECTION", true)
+                putExtra("android.speech.extra.ENABLE_LANGUAGE_SWITCH", true)
             } else {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-US")
+                // API 30-33 have no standard language-switch request; device locale is a soft hint only.
+                val deviceTag = Locale.getDefault().toLanguageTag()
+                if (deviceTag.isNotBlank() && deviceTag != "und") putExtra(RecognizerIntent.EXTRA_LANGUAGE, deviceTag)
             }
         }
 

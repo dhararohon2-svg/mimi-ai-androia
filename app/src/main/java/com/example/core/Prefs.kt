@@ -53,6 +53,19 @@ class Prefs(context: Context) {
         get() = prefs.getBoolean("vocal_response_enabled", true)
         set(value) = prefs.edit().putBoolean("vocal_response_enabled", value).apply()
 
+    // ElevenLabs credentials are stored separately in Android Keystore-backed storage.
+    var isElevenLabsEnabled: Boolean
+        get() = prefs.getBoolean("elevenlabs_enabled", false)
+        set(value) = prefs.edit().putBoolean("elevenlabs_enabled", value).apply()
+
+    var elevenLabsVoiceId: String
+        get() = prefs.getString("elevenlabs_voice_id", "") ?: ""
+        set(value) = prefs.edit().putString("elevenlabs_voice_id", value.trim()).apply()
+
+    var isGoogleChirpEnabled: Boolean
+        get() = prefs.getBoolean("google_chirp_enabled", false)
+        set(value) = prefs.edit().putBoolean("google_chirp_enabled", value).apply()
+
     var geminiApiKey: String
         get() {
             val saved = prefs.getString("gemini_api_key", "") ?: ""

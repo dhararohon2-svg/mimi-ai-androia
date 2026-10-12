@@ -118,6 +118,14 @@ class HumanMotion(seed: Long = System.nanoTime()) {
         var tBreathPeriod = 4.2f
         var gazeRange = 1f
         when (mood) {
+            "thinking" -> {
+                tHeadPitch = -4f
+                tHeadYaw = 5f
+                tHeadRoll = 2f
+                tEyePitch = -4f
+                tBreathPeriod = 4.8f
+                gazeRange = 0.55f
+            }
             "happy" -> {
                 tJoy = 0.55f
                 tHeadRoll = 3f

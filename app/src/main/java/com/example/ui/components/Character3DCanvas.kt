@@ -200,6 +200,7 @@ fun Character3DCanvas(
 
         Text(
             text = when (mood) {
+                "thinking" -> "Mimi is thinking…"
                 "happy" -> "♡ Mimi is happy"
                 "shy" -> "Mimi is feeling shy"
                 "sad" -> "Mimi is feeling sad"

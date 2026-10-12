@@ -108,6 +108,17 @@ fun SettingsScreen(
     var selectedModel by remember { mutableStateOf(prefs.geminiModel) }
     var wakeWordEnabled by remember { mutableStateOf(prefs.isWakeWordEnabled) }
     var wakeWordPhrase by remember { mutableStateOf(prefs.wakeWord) }
+    var elevenLabsKeyInput by remember { mutableStateOf("") }
+    var elevenLabsKeySaved by remember { mutableStateOf(ttsManager.hasElevenLabsApiKey()) }
+    var elevenLabsVoiceId by remember { mutableStateOf(prefs.elevenLabsVoiceId) }
+    var elevenLabsEnabled by remember {
+        mutableStateOf(prefs.isElevenLabsEnabled && ttsManager.hasElevenLabsApiKey() && prefs.elevenLabsVoiceId.isNotBlank())
+    }
+    var elevenLabsStatus by remember { mutableStateOf("") }
+    var googleChirpKeyInput by remember { mutableStateOf("") }
+    var googleChirpKeySaved by remember { mutableStateOf(ttsManager.hasGoogleChirpApiKey()) }
+    var googleChirpEnabled by remember { mutableStateOf(prefs.isGoogleChirpEnabled && ttsManager.hasGoogleChirpApiKey()) }
+    var googleChirpStatus by remember { mutableStateOf("") }
 
     val availableModels by characterController.availableModels.collectAsState()
     val activeModelId by characterController.selectedModel.collectAsState()
@@ -253,6 +264,143 @@ fun SettingsScreen(
                             },
                             colors = SwitchDefaults.colors(checkedThumbColor = PrimaryPink, checkedTrackColor = DarkSurface)
                         )
+                    }
+
+                    // ElevenLabs cloud TTS (explicit opt-in; API key is stored separately from preferences).
+                    Text("ElevenLabs Expressive Voice", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(
+                        "Model: eleven_v4 · Bengali and 90+ language coverage depends on the selected voice. Pick a voice ID from your ElevenLabs account.",
+                        color = TextSecondary,
+                        fontSize = 11.sp
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Send speech to ElevenLabs", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text("When on, Mimi's reply text is sent to ElevenLabs for audio generation.", color = TextSecondary, fontSize = 11.sp)
+                        }
+                        Switch(
+                            checked = elevenLabsEnabled,
+                            enabled = elevenLabsKeySaved && elevenLabsVoiceId.isNotBlank(),
+                            onCheckedChange = { enabled ->
+                                elevenLabsEnabled = enabled
+                                prefs.isElevenLabsEnabled = enabled
+                                elevenLabsStatus = if (enabled) "ElevenLabs cloud voice enabled." else "Android voice remains available."
+                                if (!enabled) ttsManager.stop()
+                            },
+                            colors = SwitchDefaults.colors(checkedThumbColor = PrimaryPink, checkedTrackColor = DarkSurface)
+                        )
+                    }
+                    OutlinedTextField(
+                        value = elevenLabsKeyInput,
+                        onValueChange = { elevenLabsKeyInput = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("ElevenLabs API key") },
+                        placeholder = { Text(if (elevenLabsKeySaved) "A key is saved on this device" else "Paste your own API key") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedBorderColor = PrimaryPink,
+                            unfocusedBorderColor = DarkBorder
+                        )
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Button(
+                            onClick = {
+                                val saved = ttsManager.saveElevenLabsApiKey(elevenLabsKeyInput)
+                                if (saved) {
+                                    elevenLabsKeySaved = true
+                                    elevenLabsKeyInput = ""
+                                    elevenLabsStatus = "API key encrypted and saved on this device."
+                                } else {
+                                    elevenLabsStatus = "Enter a non-empty API key; it was not saved."
+                                }
+                            },
+                            enabled = elevenLabsKeyInput.isNotBlank(),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryPink)
+                        ) { Text("Save key securely", fontSize = 12.sp) }
+                        if (elevenLabsKeySaved) {
+                            Button(
+                                onClick = {
+                                    ttsManager.clearElevenLabsApiKey()
+                                    elevenLabsKeySaved = false
+                                    elevenLabsEnabled = false
+                                    elevenLabsKeyInput = ""
+                                    elevenLabsStatus = "Saved API key removed."
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = DarkSurface)
+                            ) { Text("Remove key", fontSize = 12.sp, color = TextPrimary) }
+                        }
+                    }
+                    OutlinedTextField(
+                        value = elevenLabsVoiceId,
+                        onValueChange = {
+                            elevenLabsVoiceId = it
+                            prefs.elevenLabsVoiceId = it
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("ElevenLabs voice ID") },
+                        placeholder = { Text("Paste a voice ID from your account") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedBorderColor = PrimaryPink,
+                            unfocusedBorderColor = DarkBorder
+                        )
+                    )
+                    Text(
+                        "Privacy: voice replies are sent to ElevenLabs only while this switch is on. The key is encrypted at rest with Android Keystore, but a key used directly in a mobile app can still be exposed on a compromised device. A private backend proxy is safer for public distribution.",
+                        color = TextSecondary,
+                        fontSize = 10.sp
+                    )
+                    if (elevenLabsStatus.isNotBlank()) {
+                        Text(elevenLabsStatus, color = SecondaryPink, fontSize = 11.sp)
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Google Cloud Chirp 3 HD", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Fallback after ElevenLabs; Android TTS remains the offline fallback.", color = TextSecondary, fontSize = 11.sp)
+                            }
+                            Switch(checked = googleChirpEnabled, enabled = googleChirpKeySaved, onCheckedChange = { enabled ->
+                                googleChirpEnabled = enabled; prefs.isGoogleChirpEnabled = enabled
+                            }, colors = SwitchDefaults.colors(checkedThumbColor = PrimaryPink, checkedTrackColor = DarkSurface))
+                        }
+                        OutlinedTextField(
+                            value = googleChirpKeyInput, onValueChange = { googleChirpKeyInput = it },
+                            modifier = Modifier.fillMaxWidth(), label = { Text("Google Cloud TTS API key") },
+                            placeholder = { Text("Paste a restricted API key") }, singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedBorderColor = PrimaryPink, unfocusedBorderColor = DarkBorder)
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Button(onClick = {
+                                if (ttsManager.saveGoogleChirpApiKey(googleChirpKeyInput)) {
+                                    googleChirpKeySaved = true; googleChirpKeyInput = ""
+                                    googleChirpStatus = "Key encrypted and saved on this device. Turn on the switch to allow cloud fallback."
+                                } else googleChirpStatus = "Enter a non-empty API key; it was not saved."
+                            }, enabled = googleChirpKeyInput.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = PrimaryPink)) {
+                                Text("Save key securely", fontSize = 12.sp)
+                            }
+                            if (googleChirpKeySaved) Button(onClick = {
+                                ttsManager.clearGoogleChirpApiKey(); googleChirpKeySaved = false; googleChirpEnabled = false
+                                googleChirpKeyInput = ""; googleChirpStatus = "Saved API key removed."
+                            }, colors = ButtonDefaults.buttonColors(containerColor = DarkSurface)) {
+                                Text("Remove key", fontSize = 12.sp, color = TextPrimary)
+                            }
+                        }
+                        Text(
+                            "Privacy: reply text is sent to Google only while this switch is on and ElevenLabs is unavailable or disabled. Enable Cloud Text-to-Speech and billing in your Google Cloud project. Restrict the key to this Android app and the TTS API. Keystore encryption protects local storage, but a key used by a mobile app can still be extracted from a compromised device.",
+                            color = TextSecondary, fontSize = 10.sp
+                        )
+                        if (googleChirpStatus.isNotBlank()) Text(googleChirpStatus, color = SecondaryPink, fontSize = 11.sp)
                     }
 
                     // TTS Engine Info
