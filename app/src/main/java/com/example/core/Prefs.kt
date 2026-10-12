@@ -8,6 +8,19 @@ class Prefs(context: Context) {
 
     private val prefs: SharedPreferences = context.getSharedPreferences("mimi_assistant_prefs", Context.MODE_PRIVATE)
 
+    init {
+        // One-time migration of model ids: the draft id "animated_mimi" and the old 1-triangle
+        // placeholders now show the rigged anime_mimi model. Other choices are kept.
+        if (!prefs.getBoolean("char_model_v3_migrated", false)) {
+            val saved = prefs.getString("char_model", null)
+            val editor = prefs.edit()
+            if (saved == "animated_mimi" || saved == "cyber_mimi" || saved == "chibi_mimi") {
+                editor.putString("char_model", "anime_mimi")
+            }
+            editor.putBoolean("char_model_v3_migrated", true).apply()
+        }
+    }
+
     var characterName: String
         get() = prefs.getString("char_name", "Mimi") ?: "Mimi"
         set(value) = prefs.edit().putString("char_name", value).apply()

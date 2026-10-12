@@ -367,10 +367,17 @@ public class PhoneController {
             );
 
             long triggerAt = System.currentTimeMillis() + (delayMinutes * 60L * 1000L);
+            boolean exact = true;
             if (am != null) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
+                    // Android 12+ may deny exact alarms; fall back to an alarm that is slightly less precise
+                    exact = false;
+                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi);
+                } else {
+                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi);
+                }
             }
-            return new ActionResult(true, "Reminder scheduled in " + delayMinutes + " minute(s): \"" + reminderText + "\"");
+            return new ActionResult(true, "Reminder scheduled in " + delayMinutes + " minute(s)" + (exact ? "" : " (approximate time)") + ": \"" + reminderText + "\"");
         } catch (Exception e) {
             return new ActionResult(false, "Could not schedule reminder: " + e.getMessage());
         }
